@@ -6,9 +6,9 @@ services:
     # - Use a prebuilt image
     #image: denverquane/amongusdiscord:${AUTOMUTEUS_TAG:?err}
     # - Build image from local source
-    #build: .
+    build: .
     # - Build image from github directly
-    build: http://github.com/denverquane/automuteus.git
+    #build: http://github.com/denverquane/automuteus.git
     #build: https://github.com/wacha-329/automuteus-jp.git
 
     restart: always
