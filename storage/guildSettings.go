@@ -1,32 +1,43 @@
 package storage
 
 import (
+	"github.com/automuteus/utils/pkg/game"
+	"os"
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/denverquane/amongusdiscord/game"
 	"github.com/denverquane/amongusdiscord/locale"
 )
 
-type GuildSettings struct {
-	CommandPrefix string `json:"commandPrefix"`
-	Language      string `json:"language"`
+const DefaultLeaderboardSize = 3
+const DefaultLeaderboardMin = 3
 
+type GuildSettings struct {
 	AdminUserIDs             []string        `json:"adminIDs"`
 	PermissionRoleIDs        []string        `json:"permissionRoleIDs"`
-	Delays                   game.GameDelays `json:"delays"`
+	CommandPrefix            string          `json:"commandPrefix"`
+	Language                 string          `json:"language"`
 	VoiceRules               game.VoiceRules `json:"voiceRules"`
-	UnmuteDeadDuringTasks    bool            `json:"unmuteDeadDuringTasks"`
-	DeleteGameSummaryMinutes int             `json:"deleteGameSummary"`
-	AutoRefresh              bool            `json:"autoRefresh"`
 	MapVersion               string          `json:"mapVersion"`
-
-	lock sync.RWMutex
+	Delays                   game.GameDelays `json:"delays"`
+	DeleteGameSummaryMinutes int             `json:"deleteGameSummary"`
+	lock                     sync.RWMutex
+	UnmuteDeadDuringTasks    bool   `json:"unmuteDeadDuringTasks"`
+	AutoRefresh              bool   `json:"autoRefresh"`
+	MatchSummaryChannelID    string `json:"matchSummaryChannelID"`
+	LeaderboardMention       bool   `json:"leaderboardMention"`
+	LeaderboardSize          int    `json:"leaderboardSize"`
+	LeaderboardMin           int    `json:"leaderboardMin"`
+	MuteSpectator            bool   `json:"muteSpectator"`
 }
 
 func MakeGuildSettings() *GuildSettings {
+	prefix := os.Getenv("AUTOMUTEUS_GLOBAL_PREFIX")
+	if prefix == "" {
+		prefix = ".au"
+	}
 	return &GuildSettings{
-		CommandPrefix:            ".au",
+		CommandPrefix:            prefix,
 		Language:                 locale.DefaultLang,
 		AdminUserIDs:             []string{},
 		PermissionRoleIDs:        []string{},
@@ -36,6 +47,11 @@ func MakeGuildSettings() *GuildSettings {
 		DeleteGameSummaryMinutes: 0, //-1 for never delete the match summary
 		AutoRefresh:              false,
 		MapVersion:               "simple",
+		MatchSummaryChannelID:    "",
+		LeaderboardMention:       true,
+		LeaderboardSize:          3,
+		LeaderboardMin:           3,
+		MuteSpectator:            false,
 		lock:                     sync.RWMutex{},
 	}
 }
@@ -105,6 +121,14 @@ func (gs *GuildSettings) SetDeleteGameSummaryMinutes(num int) {
 	gs.DeleteGameSummaryMinutes = num
 }
 
+func (gs *GuildSettings) SetMatchSummaryChannelID(id string) {
+	gs.MatchSummaryChannelID = id
+}
+
+func (gs *GuildSettings) GetMatchSummaryChannelID() string {
+	return gs.MatchSummaryChannelID
+}
+
 func (gs *GuildSettings) GetAutoRefresh() bool {
 	return gs.AutoRefresh
 }
@@ -113,12 +137,49 @@ func (gs *GuildSettings) SetAutoRefresh(n bool) {
 	gs.AutoRefresh = n
 }
 
+func (gs *GuildSettings) GetLeaderboardMention() bool {
+	return gs.LeaderboardMention
+}
+
+func (gs *GuildSettings) SetLeaderboardMention(v bool) {
+	gs.LeaderboardMention = v
+}
+
+func (gs *GuildSettings) GetLeaderboardSize() int {
+	if gs.LeaderboardSize < 1 {
+		return DefaultLeaderboardSize
+	}
+	return gs.LeaderboardSize
+}
+
+func (gs *GuildSettings) SetLeaderboardSize(v int) {
+	gs.LeaderboardSize = v
+}
+
+func (gs *GuildSettings) GetLeaderboardMin() int {
+	if gs.LeaderboardMin < 1 {
+		return DefaultLeaderboardMin
+	}
+	return gs.LeaderboardMin
+}
+
+func (gs *GuildSettings) SetLeaderboardMin(v int) {
+	gs.LeaderboardMin = v
+}
+
+func (gs *GuildSettings) GetMuteSpectator() bool {
+	return gs.MuteSpectator
+}
+
+func (gs *GuildSettings) SetMuteSpectator(behavior bool) {
+	gs.MuteSpectator = behavior
+}
+
 func (gs *GuildSettings) GetMapVersion() string {
 	if gs.MapVersion == "" {
 		return "simple"
-	} else {
-		return gs.MapVersion
 	}
+	return gs.MapVersion
 }
 
 func (gs *GuildSettings) SetMapVersion(n string) {
@@ -148,17 +209,15 @@ func (gs *GuildSettings) SetDelay(oldPhase, newPhase game.Phase, v int) {
 func (gs *GuildSettings) GetVoiceRule(isMute bool, phase game.Phase, alive string) bool {
 	if isMute {
 		return gs.VoiceRules.MuteRules[phase.ToString()][alive]
-	} else {
-		return gs.VoiceRules.DeafRules[phase.ToString()][alive]
 	}
+	return gs.VoiceRules.DeafRules[phase.ToString()][alive]
 }
 
 func (gs *GuildSettings) SetVoiceRule(isMute bool, phase game.Phase, alive string, val bool) {
 	if isMute {
 		gs.VoiceRules.MuteRules[phase.ToString()][alive] = val
-	} else {
-		gs.VoiceRules.DeafRules[phase.ToString()][alive] = val
 	}
+	gs.VoiceRules.DeafRules[phase.ToString()][alive] = val
 }
 
 func (gs *GuildSettings) GetVoiceState(alive bool, tracked bool, phase game.Phase) (bool, bool) {
