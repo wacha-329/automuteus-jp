@@ -26,7 +26,7 @@ type GuildSettings struct {
 
 func MakeGuildSettings() *GuildSettings {
 	return &GuildSettings{
-		CommandPrefix:            ".jau",
+		CommandPrefix:            ".au",
 		Language:                 locale.DefaultLang,
 		AdminUserIDs:             []string{},
 		PermissionRoleIDs:        []string{},
