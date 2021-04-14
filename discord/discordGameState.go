@@ -149,6 +149,9 @@ func (dgs *GameState) ToEmojiEmbedFields(emojis AlivenessEmojis, sett *storage.G
 	num := 0
 
 	for _, player := range dgs.AmongUsData.PlayerData {
+		if player.Color < 0 || player.Color > 11 {
+			break
+		}
 		for _, userData := range dgs.UserData {
 			if userData.InGameName == player.Name {
 				emoji := emojis[player.IsAlive][player.Color]
